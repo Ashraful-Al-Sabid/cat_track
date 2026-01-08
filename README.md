@@ -1,5 +1,6 @@
 The live version of this project can be viewed at https://cattrackbeta.vercel.app/
-_“Because pets can’t text, but they still have emotions — we give them a voice through sound and color.”_
+.
+**_“Because pets can’t text, but they still have emotions — we give them a voice through sound and color.”_**
 .
 .
 Data taken arbitrarily to evaluate current condition of cat. the main logic is given below : 

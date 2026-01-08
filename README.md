@@ -55,4 +55,4 @@ elif eating_time >= 6:
     emotion = "🟡 Hungry"              # Cat has not eaten recently
 
 else:
-    emotion = "🟢 Happy / Calm"        # Normal sta
+    emotion = "🟢 Happy / Calm"        # Normal state

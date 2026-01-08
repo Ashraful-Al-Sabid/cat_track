@@ -52,49 +52,54 @@ export default function App() {
     return () => clearInterval(syncInterval);
   }, []);
 
-  // Mood Logic Engine
+ // Mood Logic Engine
   const moodState = useMemo(() => {
-        const { heartbeat, soundFreq, lastFeed } = metrics;
+    const { heartbeat, soundFreq, lastFeed } = metrics;
 
-        // No data entered yet
-        if (!heartbeat && !soundFreq && !lastFeed) {
-            return { color: 'bg-gray-200', label: 'Waiting for Data', isDanger: false };
-        }
+    // No data entered yet
+    if (!heartbeat && !soundFreq && !lastFeed) {
+      return { color: 'bg-gray-200', label: 'Waiting for Data', isDanger: false };
+    }
 
-        // Normalize raw input strings
-        const hbRaw = (heartbeat || '').toString().trim();
-        const sfRaw = (soundFreq || '').toString().trim();
-        const ltRaw = (lastFeed || '').toString().trim();
+    // Normalize raw input strings
+    const hbRaw = (heartbeat || '').toString().trim();
+    const sfRaw = (soundFreq || '').toString().trim();
+    const ltRaw = (lastFeed || '').toString().trim();
 
-        const hb = hbRaw === '' ? null : Number(hbRaw);
-        const sf = sfRaw === '' ? null : Number(sfRaw);
-        const lt = ltRaw === '' ? null : Number(ltRaw);
+    const hb = hbRaw === '' ? null : Number(hbRaw);
+    const sf = sfRaw === '' ? null : Number(sfRaw);
+    const lt = ltRaw === '' ? null : Number(ltRaw);
 
-        // Validate numeric ranges and types. If any provided value is invalid, show explicit message.
-        const hbInvalid = hbRaw !== '' && (isNaN(hb) || hb < 0 || hb > 300);
-        const sfInvalid = sfRaw !== '' && (isNaN(sf) || sf < 0 || sf > 20000);
-        const ltInvalid = ltRaw !== '' && (isNaN(lt) || lt < 0 || lt > 168);
+    // --- UPDATED VALIDATION ---
+    // 1. Checks if heartbeat is 0 or less (hb <= 0)
+    // 2. Checks if heartbeat is a decimal/fraction (!Number.isInteger)
+    const hbInvalid = hbRaw !== '' && (isNaN(hb) || hb <= 0 || hb > 300 || !Number.isInteger(hb));
+    
+    // Validating other metrics (Frequency and Feed time)
+    const sfInvalid = sfRaw !== '' && (isNaN(sf) || sf < 0 || sf > 20000);
+    const ltInvalid = ltRaw !== '' && (isNaN(lt) || lt < 0 || lt > 168);
 
-        if (hbInvalid || sfInvalid || ltInvalid) {
-            return { color: 'bg-gray-300', label: '⚠️ Invalid Input', isDanger: false };
-        }
+    if (hbInvalid || sfInvalid || ltInvalid) {
+      return { color: 'bg-gray-300', label: '⚠️ Invalid Input', isDanger: false };
+    }
+    // --- END UPDATED VALIDATION ---
 
-        // Fallback numeric values (treat null as 0 for evaluation where appropriate)
-        const hbVal = hb === null ? 0 : hb;
-        const sfVal = sf === null ? 0 : sf;
-        const ltVal = lt === null ? 0 : lt;
+    // Fallback numeric values
+    const hbVal = hb === null ? 0 : hb;
+    const sfVal = sf === null ? 0 : sf;
+    const ltVal = lt === null ? 0 : lt;
 
-        if (hbVal > 160 || sfVal > 1500) {
-            return { color: 'bg-red-600 animate-pulse', label: '🚨 Alert Danger', isDanger: true };
-        } else if (hbVal > 140 || sfVal > 1200) {
-            return { color: 'bg-red-500', label: '🔴 Stressed / Danger', isDanger: true };
-        } else if (hbVal < 60 && sfVal < 300 && hbVal > 0) {
-            return { color: 'bg-blue-500', label: '🔵 Sick / Low Energy', isDanger: false };
-        } else if (ltVal >= 6) {
-            return { color: 'bg-yellow-400', label: '🟡 Hungry', isDanger: false };
-        } else {
-            return { color: 'bg-green-500', label: '🟢 Happy / Calm', isDanger: false };
-        }
+    if (hbVal > 160 || sfVal > 1500) {
+      return { color: 'bg-red-600 animate-pulse', label: '🚨 Alert Danger', isDanger: true };
+    } else if (hbVal > 140 || sfVal > 1200) {
+      return { color: 'bg-red-500', label: '🔴 Stressed / Danger', isDanger: true };
+    } else if (hbVal < 60 && sfVal < 300 && hbVal > 0) {
+      return { color: 'bg-blue-500', label: '🔵 Sick / Low Energy', isDanger: false };
+    } else if (ltVal >= 6) {
+      return { color: 'bg-yellow-400', label: '🟡 Hungry', isDanger: false };
+    } else {
+      return { color: 'bg-green-500', label: '🟢 Happy / Calm', isDanger: false };
+    }
   }, [metrics]);
 
   // Automatic redirect to map when in danger
@@ -190,7 +195,7 @@ export default function App() {
         {currentPage === 'home' && <HomePage onGetStarted={() => setCurrentPage('data')} isAnimated={isAnimated} />}
         
         {currentPage === 'data' && (
-            <DataPage metrics={metrics} setMetrics={setMetrics} />
+            <DataPage metrics={metrics} setMetrics={setMetrics} moodState={moodState} />
         )}
 
         {currentPage === 'map' && <MapPage isDanger={moodState.isDanger} />}
@@ -508,7 +513,7 @@ function MapPage({ isDanger }) {
     );
 }
 
-function DataPage({ metrics, setMetrics }) {
+function DataPage({ metrics, setMetrics, moodState }) {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setMetrics(prev => ({ ...prev, [name]: value }));
@@ -520,6 +525,12 @@ function DataPage({ metrics, setMetrics }) {
                 <Database size={32} className="text-red-600" />
                 Health Metrics
             </h2>
+            {/* Live mood banner (shows Invalid Input when validation fails) */}
+            {moodState && (
+                <div className={`p-3 rounded-xl mb-6 font-black text-sm text-white ${moodState.color}`}>
+                    {moodState.label}
+                </div>
+            )}
             
             <div className="grid gap-6">
                 <div className="bg-white border-2 border-black p-6 rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex flex-col gap-2 transition-transform hover:-translate-y-1">

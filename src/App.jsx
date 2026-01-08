@@ -54,27 +54,47 @@ export default function App() {
 
   // Mood Logic Engine
   const moodState = useMemo(() => {
-    const { heartbeat, soundFreq, lastFeed } = metrics;
-    
-    if (!heartbeat && !soundFreq && !lastFeed) {
-      return { color: 'bg-gray-200', label: 'Waiting for Data', isDanger: false };
-    }
+        const { heartbeat, soundFreq, lastFeed } = metrics;
 
-    const hb = parseFloat(heartbeat) || 0;
-    const sf = parseFloat(soundFreq) || 0;
-    const lt = parseFloat(lastFeed) || 0;
+        // No data entered yet
+        if (!heartbeat && !soundFreq && !lastFeed) {
+            return { color: 'bg-gray-200', label: 'Waiting for Data', isDanger: false };
+        }
 
-    if (hb > 160 || sf > 1500) {
-      return { color: 'bg-red-600 animate-pulse', label: '🚨 Alert Danger', isDanger: true };
-    } else if (hb > 140 || sf > 1200) {
-      return { color: 'bg-red-500', label: '🔴 Stressed / Danger', isDanger: true };
-    } else if (hb < 60 && sf < 300 && hb > 0) {
-      return { color: 'bg-blue-500', label: '🔵 Sick / Low Energy', isDanger: false };
-    } else if (lt >= 6) {
-      return { color: 'bg-yellow-400', label: '🟡 Hungry', isDanger: false };
-    } else {
-      return { color: 'bg-green-500', label: '🟢 Happy / Calm', isDanger: false };
-    }
+        // Normalize raw input strings
+        const hbRaw = (heartbeat || '').toString().trim();
+        const sfRaw = (soundFreq || '').toString().trim();
+        const ltRaw = (lastFeed || '').toString().trim();
+
+        const hb = hbRaw === '' ? null : Number(hbRaw);
+        const sf = sfRaw === '' ? null : Number(sfRaw);
+        const lt = ltRaw === '' ? null : Number(ltRaw);
+
+        // Validate numeric ranges and types. If any provided value is invalid, show explicit message.
+        const hbInvalid = hbRaw !== '' && (isNaN(hb) || hb < 0 || hb > 300);
+        const sfInvalid = sfRaw !== '' && (isNaN(sf) || sf < 0 || sf > 20000);
+        const ltInvalid = ltRaw !== '' && (isNaN(lt) || lt < 0 || lt > 168);
+
+        if (hbInvalid || sfInvalid || ltInvalid) {
+            return { color: 'bg-gray-300', label: '⚠️ Invalid Input', isDanger: false };
+        }
+
+        // Fallback numeric values (treat null as 0 for evaluation where appropriate)
+        const hbVal = hb === null ? 0 : hb;
+        const sfVal = sf === null ? 0 : sf;
+        const ltVal = lt === null ? 0 : lt;
+
+        if (hbVal > 160 || sfVal > 1500) {
+            return { color: 'bg-red-600 animate-pulse', label: '🚨 Alert Danger', isDanger: true };
+        } else if (hbVal > 140 || sfVal > 1200) {
+            return { color: 'bg-red-500', label: '🔴 Stressed / Danger', isDanger: true };
+        } else if (hbVal < 60 && sfVal < 300 && hbVal > 0) {
+            return { color: 'bg-blue-500', label: '🔵 Sick / Low Energy', isDanger: false };
+        } else if (ltVal >= 6) {
+            return { color: 'bg-yellow-400', label: '🟡 Hungry', isDanger: false };
+        } else {
+            return { color: 'bg-green-500', label: '🟢 Happy / Calm', isDanger: false };
+        }
   }, [metrics]);
 
   // Automatic redirect to map when in danger
